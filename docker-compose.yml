@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+
+  web:
+    build: .
+    image: wpamapp
+    command: python3 manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - media:/var/media
+    depends_on:
+      - db
+      - mq
+      - worker
+      - migration
+
+
+  worker:
+    image: wpamapp
+    command: celery -A wpam worker -l info
+    deploy:
+      replicas: 2
+    volumes:
+      - media:/var/media
+    depends_on:
+      - db
+      - mq
+      - migration
+
+  migration:
+    image: wpamapp
+    command: python3 manage.py migrate --noinput
+    depends_on:
+      - db
+
+  db:
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  mq:
+    image: rabbitmq
+
+volumes:
+  postgres_data:
+  media:
